@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Chess Ratings | التصنيف الحي للشطرنج</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #111827;
+      --bg-card-hover: #1a2336;
+      --bg-input: #0f172a;
+      --border: #1e293b;
+      --border-light: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --accent-soft: rgba(16, 185, 129, 0.12);
+      --chesscom: #81b64c;
+      --lichess: #e2e8f0;
+      --fide: #38bdf8;
+      --gold: #fbbf24;
+      --silver: #cbd5e1;
+      --bronze: #d97706;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; direction: ltr; display: inline-block; }
+
+    /* Header */
+    header {
+      background: linear-gradient(180deg, #111827 0%, #0b0f19 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      backdrop-filter: blur(12px);
+    }
+    .header-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    .brand h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; }
+    .brand p { font-size: 0.8rem; color: var(--text-secondary); }
+
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .btn {
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border-light);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.18s ease;
+    }
+    .btn:hover { background: var(--bg-card-hover); border-color: #475569; }
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #042f2e;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-warning {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+    .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.78rem; border-radius: 7px; }
+
+    /* Status Bar */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1.25rem 1.5rem 3rem;
+    }
+    .status-bar {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.75rem 1.1rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.82rem;
+    }
+    .status-pills {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .pill {
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-secondary);
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+    .dot.ok { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .dot.loading { background: var(--warning); animation: pulse 1s infinite; }
+    .dot.err { background: var(--danger); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Navigation Tabs */
+    .nav-wrapper {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    .main-cats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.75rem;
+    }
+    .cat-btn {
+      font-family: 'Cairo', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 0.45rem 0.95rem;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cat-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+    .cat-btn.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+    .sub-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sub-tabs-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .sub-btn {
+      font-family: 'Cairo', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      padding: 0.35rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sub-btn:hover { border-color: #475569; color: var(--text-primary); }
+    .sub-btn.active {
+      background: #1e293b;
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .search-box {
+      position: relative;
+      min-width: 240px;
+    }
+    .search-box input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-light);
+      color: var(--text-primary);
+      padding: 0.4rem 0.85rem;
+      border-radius: 9px;
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .search-box input:focus { border-color: var(--accent); }
+
+    /* Table */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+    .table-header-info {
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .table-header-info h2 { font-size: 1.05rem; font-weight: 800; }
+    .table-scroll { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th {
+      background: #0f172a;
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.75rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover { color: var(--text-primary); background: #162033; }
+    td {
+      padding: 0.75rem 0.9rem;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.65);
+      font-size: 0.88rem;
+    }
+    tr:hover td { background: rgba(30, 41, 59, 0.35); }
+
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+    }
+    .rank-1 { background: rgba(251, 191, 36, 0.16); color: var(--gold); border-color: rgba(251, 191, 36, 0.45); }
+    .rank-2 { background: rgba(203, 213, 225, 0.16); color: var(--silver); border-color: rgba(203, 213, 225, 0.45); }
+    .rank-3 { background: rgba(217, 119, 6, 0.16); color: var(--bronze); border-color: rgba(217, 119, 6, 0.45); }
+
+    .player-cell { display: flex; flex-direction: column; }
+    .player-name { font-weight: 700; color: var(--text-primary); }
+    .player-handles { font-size: 0.74rem; color: var(--text-muted); display: flex; gap: 0.5rem; }
+    .player-handles a { color: var(--text-secondary); text-decoration: none; }
+    .player-handles a:hover { color: var(--accent); text-decoration: underline; }
+
+    .rating-val { font-weight: 700; font-size: 0.95rem; }
+    .rating-main {
+      font-weight: 800;
+      font-size: 1.02rem;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 0.2rem 0.55rem;
+      border-radius: 7px;
+    }
+    .unrated { color: var(--text-muted); font-size: 0.8rem; }
+    .diff-neg { color: #f87171; font-size: 0.78rem; }
+    .diff-zero { color: var(--text-muted); font-size: 0.78rem; }
+    .delta-up { color: #34d399; font-size: 0.74rem; margin-right: 4px; }
+    .delta-down { color: #f87171; font-size: 0.74rem; margin-right: 4px; }
+
+    .col-cc { color: var(--chesscom); }
+    .col-li { color: var(--lichess); }
+    .col-fide { color: var(--fide); }
+
+    /* Modals */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.8);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 1rem;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 760px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 1.4rem;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+    }
+    .modal-sm { max-width: 400px; }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+    .modal-head h3 { font-size: 1.1rem; font-weight: 800; }
+    .close-x {
+      background: none; border: none; color: var(--text-secondary);
+      font-size: 1.4rem; cursor: pointer; line-height: 1;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
+    .form-group label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 600; }
+    .form-group input, .form-group textarea {
+      background: var(--bg-input);
+      border: 1px solid var(--border-light);
+      color: var(--text-primary);
+      padding: 0.5rem 0.75rem;
+      border-radius: 9px;
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.88rem;
+      outline: none;
+    }
+    .form-group input:focus, .form-group textarea:focus { border-color: var(--accent); }
+    .admin-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.65rem;
+    }
+    .admin-tab-btn {
+      font-family: 'Cairo', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .admin-tab-btn.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+    .admin-pane { display: none; }
+    .admin-pane.active { display: block; }
+
+    .member-list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .toast {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 1.25rem;
+      background: #1e293b;
+      border: 1px solid var(--accent);
+      color: #fff;
+      padding: 0.7rem 1.1rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      z-index: 200;
+      display: none;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-icon">♞</div>
+      <div>
+        <h1>Live Chess Ratings</h1>
+        <p>التصنيف الحي المباشر لأعضاء الجروب • Chess.com &amp; Lichess &amp; FIDE</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="refreshAllRatings(true)">
+        <span>🔄 تحديث اللايف ريتينج الآن</span>
+      </button>
+      <button id="adminLoginBtn" class="btn" onclick="openPinModal()">
+        <span>دخول المشرف 🔒</span>
+      </button>
+      <button id="adminManageBtn" class="btn btn-warning" style="display:none" onclick="openAdminModal()">
+        <span>إدارة الأعضاء 🔓</span>
+      </button>
+      <button id="adminLockBtn" class="btn btn-danger" style="display:none" onclick="lockAdmin()">
+        <span>قفل وضع المشرف</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Live Status Bar -->
+  <div class="status-bar">
+    <div class="status-pills">
+      <div class="pill"><span id="dotChessCom" class="dot"></span> <span>Chess.com:</span> <strong id="statusChessCom">جاهز</strong></div>
+      <div class="pill"><span id="dotLichess" class="dot"></span> <span>Lichess:</span> <strong id="statusLichess">جاهز</strong></div>
+      <div class="pill"><span id="dotFide" class="dot"></span> <span>FIDE:</span> <strong id="statusFide">جاهز</strong></div>
+      <div class="pill"><span>👥 الأعضاء:</span> <strong id="memberCount">40</strong></div>
+    </div>
+    <div style="color: var(--text-secondary); font-size: 0.8rem;">
+      آخر تحديث: <strong id="lastUpdatedText" class="mono">--:--:--</strong> • تحديث تلقائي خلال <strong id="countdownText" class="mono">60</strong>ث
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-wrapper">
+    <div class="main-cats" id="mainCats">
+      <button class="cat-btn active" data-cat="master" onclick="selectCategory('master')">📊 الجدول الشامل (الكل)</button>
+      <button class="cat-btn" data-cat="overalls" onclick="selectCategory('overalls')">🏆 التصنيف الشامل (المتوسطات)</button>
+      <button class="cat-btn" data-cat="chesscom" onclick="selectCategory('chesscom')">♟️ Chess.com</button>
+      <button class="cat-btn" data-cat="lichess" onclick="selectCategory('lichess')">♞ Lichess</button>
+      <button class="cat-btn" data-cat="fide" onclick="selectCategory('fide')">🌐 FIDE الدولي</button>
+    </div>
+    <div class="sub-tabs">
+      <div class="sub-tabs-list" id="subTabsList"></div>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 ابحث بالاسم أو اليوزر..." oninput="renderTable()" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Leaderboard Table -->
+  <div class="table-card">
+    <div class="table-header-info">
+      <h2 id="currentViewTitle">الجدول الشامل — جميع المنصات والمتوسطات</h2>
+      <span id="currentViewDesc" style="font-size: 0.8rem; color: var(--text-secondary);">اضغط على عنوان أي عمود لترتيب اللاعبين حسبه مباشرة</span>
+    </div>
+    <div class="table-scroll">
+      <table id="ratingsTable">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- PIN Login Modal -->
+<div id="pinModal" class="modal-backdrop">
+  <div class="modal modal-sm">
+    <div class="modal-head">
+      <h3>تسجيل دخول المشرف 🔒</h3>
+      <button class="close-x" onclick="closeModal('pinModal')">&times;</button>
+    </div>
+    <div class="form-group" style="margin-bottom: 1rem;">
+      <label>أدخل الرقم السري فقط</label>
+      <input type="password" id="pinInput" placeholder="••••" onkeydown="if(event.key==='Enter') verifyPin()" />
+    </div>
+    <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+      <button class="btn" onclick="closeModal('pinModal')">إلغاء</button>
+      <button class="btn btn-primary" onclick="verifyPin()">دخول</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Management Modal -->
+<div id="adminModal" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>لوحة إدارة الأعضاء والإعدادات 🔓</h3>
+      <button class="close-x" onclick="closeModal('adminModal')">&times;</button>
+    </div>
+
+    <div class="admin-tabs">
+      <button class="admin-tab-btn active" onclick="switchAdminTab('tabAdd', this)">➕ إضافة / تعديل عضو</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('tabList', this)">📋 القائمة الحالية (<span id="adminListCount">40</span>)</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('tabBackup', this)">💾 تصدير &amp; نسخ احتياطي</button>
+      <button class="admin-tab-btn" onclick="switchAdminTab('tabSecurity', this)">🔑 تغيير رمز المشرف</button>
+    </div>
+
+    <!-- Tab 1: Add / Edit -->
+    <div id="tabAdd" class="admin-pane active">
+      <input type="hidden" id="editPlayerId" />
+      <div class="form-grid">
+        <div class="form-group">
+          <label>الاسم المعروض *</label>
+          <input type="text" id="fName" placeholder="مثال: Ali Ayman" />
+        </div>
+        <div class="form-group">
+          <label>يوزر Chess.com</label>
+          <input type="text" id="fChessCom" placeholder="مثال: RisingAA" />
+        </div>
+        <div class="form-group">
+          <label>يوزر Lichess</label>
+          <input type="text" id="fLichess" placeholder="مثال: AliAyman127" />
+        </div>
+        <div class="form-group">
+          <label>FIDE ID (إن وجد)</label>
+          <input type="text" id="fFideId" placeholder="مثال: 54260647" />
+        </div>
+        <div class="form-group">
+          <label>FIDE Classic (Standard)</label>
+          <input type="number" id="fFideStd" placeholder="اختياري" />
+        </div>
+        <div class="form-group">
+          <label>FIDE Rapid</label>
+          <input type="number" id="fFideRapid" placeholder="اختياري" />
+        </div>
+        <div class="form-group">
+          <label>FIDE Blitz</label>
+          <input type="number" id="fFideBlitz" placeholder="اختياري" />
+        </div>
+      </div>
+      <div style="display:flex; gap:0.5rem;">
+        <button class="btn btn-primary" onclick="savePlayerForm()">💾 حفظ العضو</button>
+        <button class="btn" onclick="resetPlayerForm()">تفريغ الحقول</button>
+      </div>
+    </div>
+
+    <!-- Tab 2: Current Roster -->
+    <div id="tabList" class="admin-pane">
+      <div class="form-group" style="margin-bottom:0.75rem;">
+        <input type="text" id="adminSearchInput" placeholder="بحث سريع في الأعضاء..." oninput="renderAdminList()" />
+      </div>
+      <div id="adminMembersList" style="max-height: 360px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px;"></div>
+    </div>
+
+    <!-- Tab 3: Backup & Export HTML -->
+    <div id="tabBackup" class="admin-pane">
+      <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); padding: 0.9rem; border-radius: 12px; margin-bottom: 1rem;">
+        <h4 style="color: var(--accent); margin-bottom: 0.35rem;">🚀 نشر التعديلات لجميع أعضاء الجروب</h4>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.7rem;">
+          عند إضافة أو حذف أي عضو مستقبلاً، اضغط الزر بالأسفل لتنزيل ملف <strong>index.html</strong> محدث بالقائمة الجديدة، ثم ارفعه على GitHub ليظهر التحديث لكل الأعضاء.
+        </p>
+        <button class="btn btn-primary" onclick="downloadUpdatedHTML()">⬇️ تنزيل ملف index.html محدث بالقائمة الحالية</button>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0.75rem;">
+        <label>استيراد جماعي سريع (كل لاعب في سطر: الاسم, يوزر دوت كوم, يوزر ليتشيس, FIDE_ID)</label>
+        <textarea id="bulkImportText" rows="4" placeholder="Ahmed Ali, ahmed_cc, ahmed_li, 54200000"></textarea>
+        <div style="margin-top:0.4rem;">
+          <button class="btn btn-sm" onclick="importBulkLines()">➕ إضافة السطور للقائمة</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>النسخة الاحتياطية (JSON)</label>
+        <textarea id="jsonBackupArea" rows="4" class="mono" style="font-size:0.75rem;"></textarea>
+        <div style="display:flex; gap:0.5rem; margin-top:0.4rem;">
+          <button class="btn btn-sm" onclick="copyJsonBackup()">📋 نسخ النسخة الاحتياطية (JSON) للحافظة</button>
+          <button class="btn btn-sm btn-warning" onclick="restoreJsonBackup()">♻️ استعادة من JSON</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Security -->
+    <div id="tabSecurity" class="admin-pane">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>الرمز السري الجديد</label>
+          <input type="password" id="newPinInput" placeholder="أدخل الرمز الجديد" />
+        </div>
+        <div class="form-group">
+          <label>تأكيد الرمز السري الجديد</label>
+          <input type="password" id="confirmPinInput" placeholder="أعد إدخال الرمز الجديد" />
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="changeAdminPin()">تحديث الرمز السري</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // Embedded 40-player roster (persistent across all devices)
+  const DEFAULT_PLAYERS = [
+  {
+    "id": "player_1",
+    "name": "Mohammed Ashor",
+    "chessCom": "MohammedAshor125",
+    "lichess": "MohammedAshor125",
+    "fideId": "",
+    "fideManual": {
+      "standard": null,
+      "rapid": null,
+      "blitz": null
+    },
+    "createdAt": 0
+  },
+  {
+    "id": "player_1795165671407",
+    "name": "Ahmed Radwan",
+    "chessCom": "ahmedradwan12xv",
+    "lichess": "ahmed_912",
+    "fideId": "555001211",
+    "fideManual": {
+      "blitz": 1741,
+      "rapid": 1888,
+      "standard": 1923
+    },
+    "createdAt": 1795165671407
+  },
+  {
+    "id": "player_1795166015393",
+    "name": "Ali Mowafy",
+    "chessCom": "alimowafyy",
+    "lichess": "AliMowafy2009",
+    "fideId": "54257638",
+    "fideManual": {
+      "rapid": 1832,
+      "standard": 1779,
+      "blitz": 1750
+    },
+    "createdAt": 1795166015393
+  },
+  {
+    "id": "player_1795166417447",
+    "name": "Mohamed Alkhodairy",
+    "chessCom": "MoAlkhodairy",
+    "lichess": "MoAlkhodairy",
+    "fideId": "54259924",
+    "fideManual": {
+      "rapid": 1995,
+      "blitz": 2019,
+      "standard": 1873
+    },
+    "createdAt": 1795166417448
+  },
+  {
+    "id": "player_1795166672922",
+    "name": "Marwan Emad",
+    "chessCom": "Marwan_E-mad",
+    "lichess": "Maro-Fish",
+    "fideId": "54275750",
+    "fideManual": {
+      "rapid": 1691,
+      "blitz": null,
+      "standard": null
+    },
+    "createdAt": 1795166672922
+  },
+  {
+    "id": "player_1795166915269",
+    "name": "Yousof Abbas",
+    "chessCom": "YousofAbbas",
+    "lichess": "Good_Player123",
+    "fideId": "10683550",
+    "fideManual": {
+      "rapid": 2042,
+      "blitz": 1985,
+      "standard": 1977
+    },
+    "createdAt": 1795166915269
+  },
+  {
+    "id": "player_1795172127592",
+    "name": "Ammar Shaaban",
+    "chessCom": "AMMAR-SHAABAN",
+    "lichess": "AMMAR_SHAABAN",
+    "fideId": "54252695",
+    "fideManual": {
+      "standard": 1925,
+      "rapid": 2023,
+      "blitz": null
+    },
+    "createdAt": 1795172127592
+  },
+  {
+    "id": "player_1795173803098",
+    "name": "Abdelrahman Mohamed",
+    "chessCom": "LunarLightning",
+    "lichess": "lightining2010",
+    "fideId": "555033580",
+    "fideManual": {
+      "rapid": null,
+      "blitz": null,
+      "standard": null
+    },
+    "createdAt": 1795173803098
+  },
+  {
+    "id": "player_1795176683784",
+    "name": "Moataz Elashry",
+    "chessCom": "MotazElashryGM",
+    "lichess": "motaz4",
+    "fideId": "54271460",
+    "fideManual": {
+      "blitz": 1950,
+      "rapid": 2101,
+      "standard": 1924
+    },
+    "createdAt": 1795176683784
+  },
+  {
+    "id": "player_1795183400249",
+    "name": "Ahmed Elmogy",
+    "chessCom": "Ahmed_Elmogy",
+    "lichess": "Ahmed_Elmogy",
+    "fideId": "10668594",
+    "fideManual": {
+      "standard": null,
+      "rapid": 1690,
+      "blitz": null
+    },
+    "createdAt": 1795183400249
+  },
+  {
+    "id": "player_2",
+    "name": "Ali Ayman",
+    "chessCom": "RisingAA",
+    "lichess": "AliAyman127",
+    "fideId": "54260647",
+    "fideManual": {
+      "standard": 1961,
+      "blitz": 1942,
+      "rapid": 2075
+    },
+    "createdAt": 1795260624151
+  },
+  {
+    "id": "player_1795260884955",
+    "name": "Abdelrahman Samir",
+    "chessCom": "Skellig_505",
+    "lichess": "Skellig_505",
+    "fideId": "",
+    "fideManual": {
+      "standard": null,
+      "rapid": null,
+      "blitz": null
+    },
+    "createdAt": 1795260884955
+  },
+  {
+    "id": "player_1795261097342",
+    "name": "Mostafa Khaled",
+    "chessCom": "Mostafa-K7aled",
+    "lichess": "Mostafak7aled",
+    "fideId": "",
+    "fideManual": {
+      "blitz": null,
+      "rapid": null,
+      "standard": null
+    },
+    "createdAt": 1795261097342
+  },
+  {
+    "id": "player_1795261233887",
+    "name": "Abdelrahman Anwar",
+    "chessCom": "kingkira2",
+    "lichess": "kingkira2",
+    "fideId": "555023614",
+    "fideManual": {
+      "rapid": 1670,
+      "standard": null,
+      "blitz": null
+    },
+    "createdAt": 1795261233887
+  },
+  {
+    "id": "player_1795261287881",
+    "name": "Adham Tosson",
+    "chessCom": "adham_333",
+    "lichess": "Adham_3333",
+    "fideId": "",
+    "fideManual": {
+      "standard": null,
+      "blitz": null,
+      "rapid": null
+    },
+    "createdAt": 1795261287881
+  },
+  {
+    "id": "player_1795261347163",
+    "name": "omar Rashad",
+    "chessCom": "omarrashad_2",
+    "lichess": "Iconicomar_7",
+    "fideId": "",
+    "fideManual": {
+      "standard": null,
+      "blitz": null,
+      "rapid": null
+    },
+    "createdAt": 1795261347163
+  },
+  {
+    "id": "player_1795261711797",
+    "name": "Ahmed Omar",
+    "chessCom": "AboOmar0-0",
+    "lichess": "AboOmar10",
+    "fideId": "54255414",
+    "fideManual": {
+      "blitz": null,
+      "standard": null,
+      "rapid": 1901
+    },
+    "createdAt": 1795261711797
+  },
+  {
+    "id": "player_1795261810114",
+    "name": "Ward Mohamed",
+    "chessCom": "VoidSpectre-3000",
+    "lichess": "WRD-XR7",
+    "fideId": "10691766",
+    "fideManual": {
+      "standard": 1543,
+      "rapid": 1851,
+      "blitz": 1726
+    },
+    "createdAt": 1795261810114
+  },
+  {
+    "id": "player_1795261854208",
+    "name": "Marwan Osama",
+    "chessCom": "ERROR_578",
+    "lichess": "x_ERROR_001",
+    "fideId": "",
+    "fideManual": {
+      "standard": null,
+      "rapid": null,
+      "blitz": null
+    },
+    "createdAt": 1795261854208
+  },
+  {
+    "id": "player_1795261990749",
+    "name": "Youssef Abdel Hadi",
+    "chessCom": "yousef_dragon333",
+    "lichess": "yousef_dragon",
+    "fideId": "54297915",
+    "fideManual": {
+      "standard": 1931,
+      "blitz": 1992,
+      "rapid": 2002
+    },
+    "createdAt": 1795261990749
+  },
+  {
+    "id": "player_1795262034238",
+    "name": "Al-Baraa Mahmoud",
+    "chessCom": "Ab4x0",
+    "lichess": "Berox1412",
+    "fideId": "",
+    "fideManual": {
+      "rapid": null,
+      "blitz": null,
+      "standard": null
+    },
+    "createdAt": 1795262034238
+  },
+  {
+    "id": "player_1795262147311",
+    "name": "Osama Abdo",
+    "chessCom": "The_Syrian_Cutthroat",
+    "lichess": "Osama_the_first65",
+    "fideId": "",
+    "fideManual": {
+      "standard": null,
+      "rapid": null,
+      "blitz": null
+    },
+    "createdAt": 1795262147311
+  },
+  {
+    "id": "player_1795262241359",
+    "name": "Yousef Sallam",
+    "chessCom": "P_patrix",
+    "lichess": "P_for_patrix",
+    "fideId": "54296463",
+    "fideManual": {
+      "standard": 1633,
+      "blitz": 1665,
+      "rapid": 1686
+    },
+    "createdAt": 1795262241359
+  },
+  {
+    "id": "player_1795262340457",
+    "name": "Jad Helael",
+    "chessCom": "Jad_helael",
+    "lichess": "JordanianFisher",
+    "fideId": "8124043",
+    "fideManual": {
+      "blitz": null,
+      "rapid": 1610,
+      "standard": null
+    },
+    "createdAt": 1795262340457
+  },
+  {
+    "id": "player_1795262681496",
+    "name": "Mmahmud Samy",
+    "chessCom": "GMmahmud",
+    "lichess": "gmsamy2",
+    "fideId": "54267994",
+    "fideManual": {
+      "standard": 1915,
+      "rapid": 1909,
+      "blitz": 1919
+    },
+    "createdAt": 1795262681496
+  },
+  {
+    "id": "player_1795262799817",
+    "name": "Ahmed Yousef",
+    "chessCom": "CrounlessGm",
+    "lichess": "DelltaZero",
+    "fideId": "54283647",
+    "fideManual": {
+      "blitz": null,
+      "rapid": 1758,
+      "standard": 1725
+    },
+    "createdAt": 1795262799817
+  },
+  {
+    "id": "player_1795263048825",
+    "name": "Kareem Osama",
+    "chessCom": "Kareem_Osama2007",
+    "lichess": "Kareem_Osama2007",
+    "fideId": "54248205",
+    "fideManual": {
+      "standard": 1849,
+      "blitz": 2008,
+      "rapid": 2046
+    },
+    "createdAt": 1795263048825
+  },
+  {
+    "id": "player_1795263190957",
+    "name": "Zyad El-Mowafy",
+    "chessCom": "MRZZ_chess",
+    "lichess": "MRZZ25",
+    "fideId": "555007031",
+    "fideManual": {
+      "blitz": 1581,
+      "rapid": 1630,
+      "standard": null
+    },
+    "createdAt": 1795263190957
+  },
+  {
+    "id": "player_1795263271432",
+    "name": "Montaser",
+    "chessCom": "the_0_prepsguy",
+    "lichess": "montaser7",
+    "fideId": "",
+    "fideManual": {
+      "rapid": null,
+      "blitz": null,
+      "standard": null
+    },
+    "createdAt": 1795263271432
+  },
+  {
+    "id": "player_1795263656956",
+    "name": "Burhan Fadil",
+    "chessCom": "Brhanof_Fm",
+    "lichess": "pp1zr1",
+    "fideId": "4848713",
+    "fideManual": {
+      "rapid": 1929,
+      "blitz": null,
+      "standard": 1788
+    },
+    "createdAt": 1795263656956
+  },
+  {
+    "id": "player_1795268236139",
+    "name": "Keroles Hesham",
+    "chessCom": "KerolesHesham",
+    "lichess": "kerolesHesham",
+    "fideId": "555001130",
+    "fideManual": {
+      "standard": null,
+      "blitz": null,
+      "rapid": 1597
+    },
+    "createdAt": 1795268236139
+  },
+  {
+    "id": "player_1795268284926",
+    "name": "Ahmed Saad",
+    "chessCom": "Ahmed_Saad_X7",
+    "lichess": "AHMED_SAAD_2024",
+    "fideId": "",
+    "fideManual": {
+      "rapid": null,
+      "blitz": null,
+      "standard": null
+    },
+    "createdAt": 1795268284926
+  },
+  {
+    "id": "player_1795268364736",
+    "name": "Hossam Walid",
+    "chessCom": "Liverpool556",
+    "lichess": "chessbase16_theory",
+    "fideId": "10699384",
+    "fideManual": {
+      "standard": 1781,
+      "rapid": 1884,
+      "blitz": 1893
+    },
+    "createdAt": 1795268364736
+  },
+  {
+    "id": "player_1795268947715",
+    "name": "Felo Amir",
+    "chessCom": "Felo_Amir",
+    "lichess": "Blitz_Curler",
+    "fideId": "54286930",
+    "fideManual": {
+      "blitz": null,
+      "rapid": 1764,
+      "standard": null
+    },
+    "createdAt": 1795268947715
+  },
+  {
+    "id": "player_1795269077692",
+    "name": "Gebreel Essam",
+    "chessCom": "Gebreel_1",
+    "lichess": "Gebrel",
+    "fideId": "555017797",
+    "fideManual": {
+      "blitz": 1890,
+      "rapid": null,
+      "standard": null
+    },
+    "createdAt": 1795269077692
+  },
+  {
+    "id": "player_1795269188171",
+    "name": "Ahmed Samir",
+    "chessCom": "You_have_no_chance1",
+    "lichess": "mo_ghaly12",
+    "fideId": "",
+    "fideManual": {
+      "blitz": null,
+      "rapid": null,
+      "standard": null
+    },
+    "createdAt": 1795269188171
+  },
+  {
+    "id": "player_1795271262727",
+    "name": "Ahmed Waleed",
+    "chessCom": "HikaruMakarona",
+    "lichess": "HikaruMakarona",
+    "fideId": "",
+    "fideManual": {
+      "rapid": null,
+      "standard": null,
+      "blitz": null
+    },
+    "createdAt": 1795271262727
+  },
+  {
+    "id": "player_1795271345364",
+    "name": "Anas Yasser",
+    "chessCom": "Anas-Elvanan",
+    "lichess": "AnasYasser123",
+    "fideId": "",
+    "fideManual": {
+      "standard": null,
+      "blitz": null,
+      "rapid": null
+    },
+    "createdAt": 1795271345364
+  },
+  {
+    "id": "player_1795271675522",
+    "name": "Youssef Ghazi",
+    "chessCom": "y0uSSeF_GHAZI",
+    "lichess": "Y_aboghazi",
+    "fideId": "",
+    "fideManual": {
+      "standard": null,
+      "blitz": null,
+      "rapid": null
+    },
+    "createdAt": 1795271675522
+  },
+  {
+    "id": "player_1795278037423",
+    "name": "Abdalluh Khaled",
+    "chessCom": "ABDALLUHKHZXC",
+    "lichess": "abdalluhkh",
+    "fideId": "",
+    "fideManual": {
+      "standard": null,
+      "rapid": null,
+      "blitz": null
+    },
+    "createdAt": 1795278037423
+  }
+];
+
+  const STORAGE_KEYS = {
+    PLAYERS: 'chess_group_roster_v4',
+    RATINGS: 'chess_group_ratings_cache_v4',
+    PIN: 'chess_group_admin_pin_v4'
+  };
+
+  let players = [];
+  let ratingsCache = {};
+  let initialRatings = {};
+  let isAdmin = false;
+  let currentCat = 'master';
+  let currentSub = 'master_all';
+  let masterSortKey = 'overallAvg';
+  let masterSortAsc = false;
+  let countdown = 60;
+
+  const SUB_TABS = {
+    master: [
+      { id: 'master_all', label: 'الجدول الشامل (جميع التقييمات)' }
+    ],
+    overalls: [
+      { id: 'overallAvg', label: 'متوسط الكل (الـ 6 تقييمات)' },
+      { id: 'ccAvg', label: 'متوسط Chess.com (الـ 3)' },
+      { id: 'liAvg', label: 'متوسط Lichess (الـ 3)' }
+    ],
+    chesscom: [
+      { id: 'cc_rapid', label: 'Chess.com Rapid' },
+      { id: 'cc_blitz', label: 'Chess.com Blitz' },
+      { id: 'cc_bullet', label: 'Chess.com Bullet' }
+    ],
+    lichess: [
+      { id: 'li_rapid', label: 'Lichess Rapid' },
+      { id: 'li_blitz', label: 'Lichess Blitz' },
+      { id: 'li_bullet', label: 'Lichess Bullet' }
+    ],
+    fide: [
+      { id: 'fideAvg', label: 'متوسط FIDE (الـ 3)' },
+      { id: 'fide_standard', label: 'FIDE Classic (Standard)' },
+      { id: 'fide_rapid', label: 'FIDE Rapid' },
+      { id: 'fide_blitz', label: 'FIDE Blitz' }
+    ]
+  };
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.display = 'none'; }, 3200);
+  }
+
+  function loadState() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.PLAYERS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          players = parsed;
+        } else {
+          players = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
+        }
+      } else {
+        players = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
+      }
+    } catch (e) {
+      players = JSON.parse(JSON.stringify(DEFAULT_PLAYERS));
+    }
+
+    try {
+      const cached = localStorage.getItem(STORAGE_KEYS.RATINGS);
+      if (cached) ratingsCache = JSON.parse(cached) || {};
+    } catch (e) { ratingsCache = {}; }
+
+    document.getElementById('memberCount').textContent = players.length;
+    document.getElementById('adminListCount').textContent = players.length;
+  }
+
+  function savePlayers() {
+    localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
+    document.getElementById('memberCount').textContent = players.length;
+    document.getElementById('adminListCount').textContent = players.length;
+  }
+
+  function saveRatingsCache() {
+    try {
+      localStorage.setItem(STORAGE_KEYS.RATINGS, JSON.stringify(ratingsCache));
+    } catch (e) {}
+  }
+
+  function calcAvg(nums) {
+    const valid = nums.filter(v => typeof v === 'number' && !isNaN(v) && v > 0);
+    if (!valid.length) return null;
+    return Math.round(valid.reduce((a, b) => a + b, 0) / valid.length);
+  }
+
+  function getPlayerMetrics(p) {
+    const r = ratingsCache[p.id] || {};
+    const cc_rapid = r.cc_rapid ?? null;
+    const cc_blitz = r.cc_blitz ?? null;
+    const cc_bullet = r.cc_bullet ?? null;
+
+    const li_rapid = r.li_rapid ?? null;
+    const li_blitz = r.li_blitz ?? null;
+    const li_bullet = r.li_bullet ?? null;
+
+    const fm = p.fideManual || {};
+    const fide_standard = r.fide_standard ?? fm.standard ?? null;
+    const fide_rapid = r.fide_rapid ?? fm.rapid ?? null;
+    const fide_blitz = r.fide_blitz ?? fm.blitz ?? null;
+
+    const ccAvg = calcAvg([cc_rapid, cc_blitz, cc_bullet]);
+    const liAvg = calcAvg([li_rapid, li_blitz, li_bullet]);
+    const overallAvg = calcAvg([cc_rapid, cc_blitz, cc_bullet, li_rapid, li_blitz, li_bullet]);
+    const fideAvg = calcAvg([fide_standard, fide_rapid, fide_blitz]);
+
+    return {
+      ...p,
+      cc_rapid, cc_blitz, cc_bullet, ccAvg,
+      li_rapid, li_blitz, li_bullet, liAvg,
+      overallAvg,
+      fide_standard, fide_rapid, fide_blitz, fideAvg
+    };
+  }
+
+  function setStatus(platform, state, text) {
+    const dot = document.getElementById('dot' + platform);
+    const lbl = document.getElementById('status' + platform);
+    if (dot) dot.className = 'dot ' + state;
+    if (lbl) lbl.textContent = text;
+  }
+
+  async function fetchLichessRatings() {
+    setStatus('Lichess', 'loading', 'جاري السحب...');
+    const handleMap = {};
+    const handles = [];
+    players.forEach(p => {
+      if (p.lichess && p.lichess.trim()) {
+        const key = p.lichess.trim().toLowerCase();
+        if (!handleMap[key]) handleMap[key] = [];
+        handleMap[key].push(p.id);
+        handles.push(p.lichess.trim());
+      }
+    });
+
+    if (!handles.length) {
+      setStatus('Lichess', 'ok', 'لا يوجد حسابات');
+      return;
+    }
+
+    try {
+      const uniqueHandles = [...new Set(handles)];
+      const res = await fetch('https://lichess.org/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: uniqueHandles.join(',')
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const users = await res.json();
+      users.forEach(u => {
+        const key = (u.id || u.username || '').toLowerCase();
+        const ids = handleMap[key] || [];
+        const perfs = u.perfs || {};
+        ids.forEach(pid => {
+          if (!ratingsCache[pid]) ratingsCache[pid] = {};
+          if (perfs.rapid && perfs.rapid.games > 0) ratingsCache[pid].li_rapid = perfs.rapid.rating;
+          if (perfs.blitz && perfs.blitz.games > 0) ratingsCache[pid].li_blitz = perfs.blitz.rating;
+          if (perfs.bullet && perfs.bullet.games > 0) ratingsCache[pid].li_bullet = perfs.bullet.rating;
+        });
+      });
+      setStatus('Lichess', 'ok', `متصل (${users.length})`);
+    } catch (err) {
+      setStatus('Lichess', 'err', 'تعذر التحديث');
+    }
+  }
+
+  async function fetchChessComRatings() {
+    setStatus('ChessCom', 'loading', 'جاري السحب...');
+    const targets = players.filter(p => p.chessCom && p.chessCom.trim());
+    if (!targets.length) {
+      setStatus('ChessCom', 'ok', 'لا يوجد حسابات');
+      return;
+    }
+
+    let successCount = 0;
+    const batchSize = 6;
+    for (let i = 0; i < targets.length; i += batchSize) {
+      const batch = targets.slice(i, i + batchSize);
+      await Promise.allSettled(batch.map(async p => {
+        const user = p.chessCom.trim().toLowerCase();
+        const res = await fetch(`https://api.chess.com/pub/player/${encodeURIComponent(user)}/stats`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!ratingsCache[p.id]) ratingsCache[p.id] = {};
+        if (data.chess_rapid?.last?.rating) ratingsCache[p.id].cc_rapid = data.chess_rapid.last.rating;
+        if (data.chess_blitz?.last?.rating) ratingsCache[p.id].cc_blitz = data.chess_blitz.last.rating;
+        if (data.chess_bullet?.last?.rating) ratingsCache[p.id].cc_bullet = data.chess_bullet.last.rating;
+        successCount++;
+      }));
+      renderTable();
+      if (i + batchSize < targets.length) {
+        await new Promise(r => setTimeout(r, 250));
+      }
+    }
+    setStatus('ChessCom', successCount > 0 ? 'ok' : 'err', `متصل (${successCount}/${targets.length})`);
+  }
+
+  async function fetchFideRatings() {
+    setStatus('Fide', 'loading', 'جاري التحقق...');
+    const targets = players.filter(p => p.fideId && p.fideId.trim());
+    let loaded = 0;
+    targets.forEach(p => {
+      const fm = p.fideManual || {};
+      if (!ratingsCache[p.id]) ratingsCache[p.id] = {};
+      if (fm.standard) ratingsCache[p.id].fide_standard = fm.standard;
+      if (fm.rapid) ratingsCache[p.id].fide_rapid = fm.rapid;
+      if (fm.blitz) ratingsCache[p.id].fide_blitz = fm.blitz;
+      if (fm.standard || fm.rapid || fm.blitz) loaded++;
+    });
+    setStatus('Fide', 'ok', `مسجل (${loaded}/${targets.length})`);
+  }
+
+  async function refreshAllRatings(manual = false) {
+    countdown = 60;
+    if (manual) showToast('جاري سحب أحدث التقييمات الحية من Chess.com و Lichess...');
+    await Promise.all([
+      fetchLichessRatings(),
+      fetchChessComRatings(),
+      fetchFideRatings()
+    ]);
+
+    if (Object.keys(initialRatings).length === 0) {
+      players.forEach(p => {
+        initialRatings[p.id] = JSON.parse(JSON.stringify(ratingsCache[p.id] || {}));
+      });
+    }
+
+    saveRatingsCache();
+    renderTable();
+    const now = new Date();
+    document.getElementById('lastUpdatedText').textContent = now.toTimeString().split(' ')[0];
+  }
+
+  function selectCategory(cat) {
+    currentCat = cat;
+    document.querySelectorAll('.cat-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.cat === cat);
+    });
+    const subs = SUB_TABS[cat] || [];
+    currentSub = subs[0]?.id || 'master_all';
+    renderSubTabs();
+    renderTable();
+  }
+
+  function selectSubTab(subId) {
+    currentSub = subId;
+    renderSubTabs();
+    renderTable();
+  }
+
+  function renderSubTabs() {
+    const subs = SUB_TABS[currentCat] || [];
+    const container = document.getElementById('subTabsList');
+    container.innerHTML = subs.map(s => `
+      <button class="sub-btn ${s.id === currentSub ? 'active' : ''}" onclick="selectSubTab('${s.id}')">
+        ${s.label}
+      </button>
+    `).join('');
+  }
+
+  function sortMasterBy(key) {
+    if (masterSortKey === key) {
+      masterSortAsc = !masterSortAsc;
+    } else {
+      masterSortKey = key;
+      masterSortAsc = false;
+    }
+    renderTable();
+  }
+
+  function formatCellRating(val, pid, key, isHighlight = false) {
+    if (val === null || val === undefined || isNaN(val)) {
+      return `<span class="unrated">-</span>`;
+    }
+    const initVal = initialRatings[pid]?.[key];
+    let deltaHtml = '';
+    if (typeof initVal === 'number' && initVal !== val) {
+      const diff = val - initVal;
+      deltaHtml = diff > 0
+        ? `<span class="delta-up mono">+${diff}</span>`
+        : `<span class="delta-down mono">${diff}</span>`;
+    }
+    return `<span class="${isHighlight ? 'rating-main' : 'rating-val'} mono">${val}</span>${deltaHtml}`;
+  }
+
+  function renderTable() {
+    const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+    let list = players.map(getPlayerMetrics);
+
+    if (query) {
+      list = list.filter(p =>
+        p.name.toLowerCase().includes(query) ||
+        (p.chessCom && p.chessCom.toLowerCase().includes(query)) ||
+        (p.lichess && p.lichess.toLowerCase().includes(query)) ||
+        (p.fideId && p.fideId.includes(query))
+      );
+    }
+
+    const thead = document.getElementById('tableHead');
+    const tbody = document.getElementById('tableBody');
+    const titleEl = document.getElementById('currentViewTitle');
+    const descEl = document.getElementById('currentViewDesc');
+
+    if (currentCat === 'master') {
+      titleEl.textContent = 'الجدول الشامل — جميع المنصات والمتوسطات';
+      descEl.textContent = 'اضغط على عنوان أي عمود لترتيب اللاعبين حسبه مباشرة';
+
+      list.sort((a, b) => {
+        const va = a[masterSortKey];
+        const vb = b[masterSortKey];
+        if (va === null && vb === null) return 0;
+        if (va === null) return 1;
+        if (vb === null) return -1;
+        return masterSortAsc ? va - vb : vb - va;
+      });
+
+      const arrow = (k) => masterSortKey === k ? (masterSortAsc ? ' ▲' : ' ▼') : '';
+
+      thead.innerHTML = `
+        <tr>
+          <th>#</th>
+          <th>اللاعب</th>
+          <th class="sortable" onclick="sortMasterBy('overallAvg')">متوسط الكل (6)${arrow('overallAvg')}</th>
+          <th class="sortable col-cc" onclick="sortMasterBy('ccAvg')">متوسط CC${arrow('ccAvg')}</th>
+          <th class="sortable col-cc" onclick="sortMasterBy('cc_rapid')">CC Rapid${arrow('cc_rapid')}</th>
+          <th class="sortable col-cc" onclick="sortMasterBy('cc_blitz')">CC Blitz${arrow('cc_blitz')}</th>
+          <th class="sortable col-cc" onclick="sortMasterBy('cc_bullet')">CC Bullet${arrow('cc_bullet')}</th>
+          <th class="sortable col-li" onclick="sortMasterBy('liAvg')">متوسط Lichess${arrow('liAvg')}</th>
+          <th class="sortable col-li" onclick="sortMasterBy('li_rapid')">Li Rapid${arrow('li_rapid')}</th>
+          <th class="sortable col-li" onclick="sortMasterBy('li_blitz')">Li Blitz${arrow('li_blitz')}</th>
+          <th class="sortable col-li" onclick="sortMasterBy('li_bullet')">Li Bullet${arrow('li_bullet')}</th>
+          <th class="sortable col-fide" onclick="sortMasterBy('fideAvg')">متوسط FIDE${arrow('fideAvg')}</th>
+          <th class="sortable col-fide" onclick="sortMasterBy('fide_standard')">FIDE Std${arrow('fide_standard')}</th>
+          <th class="sortable col-fide" onclick="sortMasterBy('fide_rapid')">FIDE Rapid${arrow('fide_rapid')}</th>
+          <th class="sortable col-fide" onclick="sortMasterBy('fide_blitz')">FIDE Blitz${arrow('fide_blitz')}</th>
+        </tr>
+      `;
+
+      tbody.innerHTML = list.map((p, idx) => {
+        const rank = idx + 1;
+        const rankClass = rank <= 3 ? `rank-${rank}` : '';
+        return `
+          <tr>
+            <td><span class="rank-badge ${rankClass} mono">${rank}</span></td>
+            <td>
+              <div class="player-cell">
+                <span class="player-name">${escapeHtml(p.name)}</span>
+                <div class="player-handles">
+                  ${p.chessCom ? `<a href="https://www.chess.com/member/${encodeURIComponent(p.chessCom)}" target="_blank">CC: ${escapeHtml(p.chessCom)}</a>` : ''}
+                  ${p.lichess ? `<a href="https://lichess.org/@/${encodeURIComponent(p.lichess)}" target="_blank">Li: ${escapeHtml(p.lichess)}</a>` : ''}
+                  ${p.fideId ? `<a href="https://ratings.fide.com/profile/${encodeURIComponent(p.fideId)}" target="_blank">FIDE</a>` : ''}
+                </div>
+              </div>
+            </td>
+            <td>${formatCellRating(p.overallAvg, p.id, 'overallAvg', true)}</td>
+            <td>${formatCellRating(p.ccAvg, p.id, 'ccAvg')}</td>
+            <td>${formatCellRating(p.cc_rapid, p.id, 'cc_rapid')}</td>
+            <td>${formatCellRating(p.cc_blitz, p.id, 'cc_blitz')}</td>
+            <td>${formatCellRating(p.cc_bullet, p.id, 'cc_bullet')}</td>
+            <td>${formatCellRating(p.liAvg, p.id, 'liAvg')}</td>
+            <td>${formatCellRating(p.li_rapid, p.id, 'li_rapid')}</td>
+            <td>${formatCellRating(p.li_blitz, p.id, 'li_blitz')}</td>
+            <td>${formatCellRating(p.li_bullet, p.id, 'li_bullet')}</td>
+            <td>${formatCellRating(p.fideAvg, p.id, 'fideAvg')}</td>
+            <td>${formatCellRating(p.fide_standard, p.id, 'fide_standard')}</td>
+            <td>${formatCellRating(p.fide_rapid, p.id, 'fide_rapid')}</td>
+            <td>${formatCellRating(p.fide_blitz, p.id, 'fide_blitz')}</td>
+          </tr>
+        `;
+      }).join('');
+    } else {
+      const activeSubObj = (SUB_TABS[currentCat] || []).find(s => s.id === currentSub);
+      titleEl.textContent = `ترتيب: ${activeSubObj ? activeSubObj.label : ''}`;
+      descEl.textContent = 'مرتب تنازلياً مع إظهار فارق النقاط عن المتصدر (#1) والمركز السابق';
+
+      const key = currentSub;
+      list.sort((a, b) => {
+        const va = a[key];
+        const vb = b[key];
+        if (va === null && vb === null) return 0;
+        if (va === null) return 1;
+        if (vb === null) return -1;
+        return vb - va;
+      });
+
+      const leaderVal = list[0]?.[key] ?? null;
+
+      thead.innerHTML = `
+        <tr>
+          <th>المركز</th>
+          <th>اللاعب</th>
+          <th>التقييم المحدد</th>
+          <th>الفرق عن #1</th>
+          <th>الفرق عن السابق</th>
+          <th>الحسابات</th>
+        </tr>
+      `;
+
+      tbody.innerHTML = list.map((p, idx) => {
+        const rank = idx + 1;
+        const rankClass = rank <= 3 ? `rank-${rank}` : '';
+        const val = p[key];
+        const prevVal = idx > 0 ? list[idx - 1][key] : null;
+
+        let diffLeader = '<span class="diff-zero">-</span>';
+        if (val !== null && leaderVal !== null) {
+          diffLeader = rank === 1
+            ? '<span style="color:var(--gold); font-size:0.78rem; font-weight:700;">👑 المتصدر</span>'
+            : `<span class="diff-neg mono">-${leaderVal - val}</span>`;
+        }
+
+        let diffPrev = '<span class="diff-zero">-</span>';
+        if (val !== null && prevVal !== null && idx > 0) {
+          diffPrev = `<span class="diff-neg mono">-${prevVal - val}</span>`;
+        }
+
+        return `
+          <tr>
+            <td><span class="rank-badge ${rankClass} mono">${rank}</span></td>
+            <td><span class="player-name">${escapeHtml(p.name)}</span></td>
+            <td>${formatCellRating(val, p.id, key, true)}</td>
+            <td>${diffLeader}</td>
+            <td>${diffPrev}</td>
+            <td>
+              <div class="player-handles">
+                ${p.chessCom ? `<a href="https://www.chess.com/member/${encodeURIComponent(p.chessCom)}" target="_blank">Chess.com</a>` : ''}
+                ${p.lichess ? `<a href="https://lichess.org/@/${encodeURIComponent(p.lichess)}" target="_blank">Lichess</a>` : ''}
+                ${p.fideId ? `<a href="https://ratings.fide.com/profile/${encodeURIComponent(p.fideId)}" target="_blank">FIDE (${escapeHtml(p.fideId)})</a>` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // Admin & Security
+  function getAdminPin() {
+    return localStorage.getItem(STORAGE_KEYS.PIN) || '1412';
+  }
+
+  function openPinModal() {
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinModal').classList.add('open');
+    setTimeout(() => document.getElementById('pinInput').focus(), 80);
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  function verifyPin() {
+    const entered = document.getElementById('pinInput').value.trim();
+    if (entered === getAdminPin()) {
+      isAdmin = true;
+      closeModal('pinModal');
+      document.getElementById('adminLoginBtn').style.display = 'none';
+      document.getElementById('adminManageBtn').style.display = 'inline-flex';
+      document.getElementById('adminLockBtn').style.display = 'inline-flex';
+      showToast('تم تفعيل وضع المشرف بنجاح');
+    } else {
+      showToast('الرقم السري غير صحيح');
+    }
+  }
+
+  function lockAdmin() {
+    isAdmin = false;
+    document.getElementById('adminLoginBtn').style.display = 'inline-flex';
+    document.getElementById('adminManageBtn').style.display = 'none';
+    document.getElementById('adminLockBtn').style.display = 'none';
+    closeModal('adminModal');
+    showToast('تم قفل وضع المشرف (وضع القراءة فقط)');
+  }
+
+  function openAdminModal() {
+    if (!isAdmin) return;
+    resetPlayerForm();
+    renderAdminList();
+    document.getElementById('jsonBackupArea').value = JSON.stringify(players, null, 2);
+    document.getElementById('adminModal').classList.add('open');
+  }
+
+  function switchAdminTab(paneId, btn) {
+    document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.admin-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(paneId).classList.add('active');
+    if (paneId === 'tabBackup') {
+      document.getElementById('jsonBackupArea').value = JSON.stringify(players, null, 2);
+    }
+  }
+
+  function resetPlayerForm() {
+    document.getElementById('editPlayerId').value = '';
+    document.getElementById('fName').value = '';
+    document.getElementById('fChessCom').value = '';
+    document.getElementById('fLichess').value = '';
+    document.getElementById('fFideId').value = '';
+    document.getElementById('fFideStd').value = '';
+    document.getElementById('fFideRapid').value = '';
+    document.getElementById('fFideBlitz').value = '';
+  }
+
+  function savePlayerForm() {
+    if (!isAdmin) return;
+    const id = document.getElementById('editPlayerId').value;
+    const name = document.getElementById('fName').value.trim();
+    if (!name) {
+      showToast('يرجى إدخال اسم العضو');
+      return;
+    }
+    const chessCom = document.getElementById('fChessCom').value.trim();
+    const lichess = document.getElementById('fLichess').value.trim();
+    const fideId = document.getElementById('fFideId').value.trim();
+    const std = parseInt(document.getElementById('fFideStd').value, 10) || null;
+    const rpd = parseInt(document.getElementById('fFideRapid').value, 10) || null;
+    const blz = parseInt(document.getElementById('fFideBlitz').value, 10) || null;
+
+    if (id) {
+      const idx = players.findIndex(p => p.id === id);
+      if (idx !== -1) {
+        players[idx] = {
+          ...players[idx],
+          name, chessCom, lichess, fideId,
+          fideManual: { standard: std, rapid: rpd, blitz: blz }
+        };
+      }
+    } else {
+      players.push({
+        id: 'player_' + Date.now(),
+        name, chessCom, lichess, fideId,
+        fideManual: { standard: std, rapid: rpd, blitz: blz },
+        createdAt: Date.now()
+      });
+    }
+
+    savePlayers();
+    resetPlayerForm();
+    renderAdminList();
+    refreshAllRatings(false);
+    showToast('تم حفظ بيانات العضو بنجاح');
+  }
+
+  function editPlayer(id) {
+    const p = players.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('editPlayerId').value = p.id;
+    document.getElementById('fName').value = p.name || '';
+    document.getElementById('fChessCom').value = p.chessCom || '';
+    document.getElementById('fLichess').value = p.lichess || '';
+    document.getElementById('fFideId').value = p.fideId || '';
+    document.getElementById('fFideStd').value = p.fideManual?.standard || '';
+    document.getElementById('fFideRapid').value = p.fideManual?.rapid || '';
+    document.getElementById('fFideBlitz').value = p.fideManual?.blitz || '';
+    switchAdminTab('tabAdd', document.querySelector('.admin-tab-btn'));
+  }
+
+  function deletePlayer(id) {
+    if (!isAdmin) return;
+    if (!confirm('هل أنت متأكد من حذف هذا العضو؟')) return;
+    players = players.filter(p => p.id !== id);
+    savePlayers();
+    renderAdminList();
+    renderTable();
+    showToast('تم حذف العضو');
+  }
+
+  function renderAdminList() {
+    const q = (document.getElementById('adminSearchInput').value || '').trim().toLowerCase();
+    const filtered = players.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      (p.chessCom && p.chessCom.toLowerCase().includes(q)) ||
+      (p.lichess && p.lichess.toLowerCase().includes(q))
+    );
+    document.getElementById('adminMembersList').innerHTML = filtered.map(p => `
+      <div class="member-list-item">
+        <div>
+          <strong>${escapeHtml(p.name)}</strong>
+          <div style="font-size:0.75rem; color:var(--text-secondary);">
+            CC: ${escapeHtml(p.chessCom || '-')} | Li: ${escapeHtml(p.lichess || '-')} | FIDE: ${escapeHtml(p.fideId || '-')}
+          </div>
+        </div>
+        <div style="display:flex; gap:0.35rem;">
+          <button class="btn btn-sm" onclick="editPlayer('${p.id}')">تعديل</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePlayer('${p.id}')">حذف</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function importBulkLines() {
+    if (!isAdmin) return;
+    const raw = document.getElementById('bulkImportText').value.trim();
+    if (!raw) return;
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    let added = 0;
+    lines.forEach((line, i) => {
+      const parts = line.split(',').map(s => s.trim());
+      if (parts[0]) {
+        players.push({
+          id: 'player_' + (Date.now() + i),
+          name: parts[0],
+          chessCom: parts[1] || '',
+          lichess: parts[2] || '',
+          fideId: parts[3] || '',
+          fideManual: { standard: null, rapid: null, blitz: null },
+          createdAt: Date.now() + i
+        });
+        added++;
+      }
+    });
+    if (added > 0) {
+      savePlayers();
+      renderAdminList();
+      refreshAllRatings(false);
+      document.getElementById('bulkImportText').value = '';
+      showToast(`تمت إضافة ${added} عضو بنجاح`);
+    }
+  }
+
+  function copyJsonBackup() {
+    const area = document.getElementById('jsonBackupArea');
+    area.select();
+    navigator.clipboard?.writeText(area.value);
+    showToast('تم نسخ قائمة الأعضاء (JSON) إلى الحافظة');
+  }
+
+  function restoreJsonBackup() {
+    if (!isAdmin) return;
+    try {
+      const parsed = JSON.parse(document.getElementById('jsonBackupArea').value);
+      if (!Array.isArray(parsed)) throw new Error('Invalid');
+      players = parsed;
+      savePlayers();
+      renderAdminList();
+      refreshAllRatings(false);
+      showToast(`تمت استعادة ${players.length} عضو بنجاح`);
+    } catch (e) {
+      showToast('صيغة JSON غير صحيحة');
+    }
+  }
+
+  function changeAdminPin() {
+    if (!isAdmin) return;
+    const p1 = document.getElementById('newPinInput').value.trim();
+    const p2 = document.getElementById('confirmPinInput').value.trim();
+    if (!p1 || p1.length < 4) {
+      showToast('يجب أن يكون الرمز السري 4 أرقام أو أحرف على الأقل');
+      return;
+    }
+    if (p1 !== p2) {
+      showToast('الرمزان غير متطابقين');
+      return;
+    }
+    localStorage.setItem(STORAGE_KEYS.PIN, p1);
+    document.getElementById('newPinInput').value = '';
+    document.getElementById('confirmPinInput').value = '';
+    showToast('تم تحديث الرقم السري للمشرف بنجاح');
+  }
+
+  function downloadUpdatedHTML() {
+    const fullDoc = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    const updatedPlayersStr = JSON.stringify(players, null, 2);
+    const replaced = fullDoc.replace(
+      /const DEFAULT_PLAYERS = \[[\s\S]*?\];/,
+      `const DEFAULT_PLAYERS = ${updatedPlayersStr};`
+    );
+    const blob = new Blob([replaced], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'index.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('تم تنزيل ملف index.html محدث بالـ ' + players.length + ' عضو');
+  }
+
+  // Init
+  loadState();
+  renderSubTabs();
+  renderTable();
+  refreshAllRatings(false);
+
+  setInterval(() => {
+    countdown--;
+    if (countdown <= 0) {
+      refreshAllRatings(false);
+    }
+    document.getElementById('countdownText').textContent = countdown;
+  }, 1000);
+</script>
+</body>
+</html>
